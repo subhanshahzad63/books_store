@@ -1,1 +1,1 @@
-# books_store
+# Frontend of the book store
