@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import FilterSidebar, { FilterMobile } from "@/components/filter";
 import MaxWidthWrapper from "@/components/max-width-wrapper";
 import SearchBookCard from "@/components/search-book-card";
@@ -12,143 +12,139 @@ import {
   SelectValue,
   SelectItem,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { BookIcon } from "lucide-react";
+import { fetchBooks } from "@/lib/api-calls/fetch-books";
+import { useRouter } from "next/navigation";
 
-interface Book {
-  _id: { $oid: string };
-  nimi: string;
-  tekija: string;
-  isbn: string;
-  kustantaja: string;
-  painovuosi: string;
-  kieli: string;
-  kunto: string;
-  paatuoteryhma: string;
-  hinta: number;
-  tila: boolean;
+interface SearchPageClientProps {
+  initialBooks: any[];
+  initialTotalResults: number;
+  initialTotalPages: number;
+  initialCurrentPage: number;
+  initialItemsPerPage: number;
+  initialSortBy: string;
+  initialFilters: any;
 }
 
-interface FilterState {
-  type: "all" | "new" | "used";
-  author: string;
-  title: string;
-  isbn: string;
-  productGroup: string;
-  publisher: string;
-  printYear: string;
-  subject: string;
-  language: string;
-  condition: number;
-  days: number;
-}
+export default function SearchPageClient({
+  initialBooks,
+  initialTotalResults,
+  initialTotalPages,
+  initialCurrentPage,
+  initialItemsPerPage,
+  initialSortBy,
+  initialFilters,
+}: SearchPageClientProps) {
+  const router = useRouter();
 
-interface ClientPageProps {
-  books: Book[];
-}
+  // Local state for dynamic filtering and pagination
+  const [filters, setFilters] = useState(initialFilters);
+  const [sortBy, setSortBy] = useState(initialSortBy);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
+  const [currentPage, setCurrentPage] = useState(initialCurrentPage);
+  const [books, setBooks] = useState(initialBooks);
+  const [totalResults, setTotalResults] = useState(initialTotalResults);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
 
-export default function ClientPage({ books }: ClientPageProps) {
-  const ITEMS_PER_PAGE = 30;
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(ITEMS_PER_PAGE);
-  const [sortBy, setSortBy] = useState<string>("author");
+  const updateFilters = async (updatedFilters: any) => {
+    const newFilters = { ...filters, ...updatedFilters };
+    setFilters(newFilters);
 
-  const [filters, setFilters] = useState<FilterState>({
-    type: "all",
-    author: "",
-    title: "",
-    isbn: "",
-    productGroup: "",
-    publisher: "",
-    printYear: "",
-    subject: "",
-    language: "",
-    condition: 4,
-    days: 14,
-  });
+    // Create query string
+    const queryParams = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(newFilters).map(([k, v]) => [k, String(v)])
+      )
+    ).toString();
 
-  const handleFilterChange = (key: keyof FilterState, value: any) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-    // setCurrentPage(1); // Reset to first page when filters change
+    // Update URL
+    router.push(`/search?${queryParams}`);
+
+    try {
+      const data = await fetchBooks(newFilters);
+      setBooks(data.books);
+      setTotalResults(data.totalResults);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.currentPage);
+    } catch (error) {
+      console.error("Error updating filters:", error);
+    }
   };
 
-  const handleClearFilters = () => {
-    setFilters({
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters((prevFilters: any) => ({
+      ...prevFilters,
+      [key]: value,
+    }));
+  };
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort);
+    updateFilters({ sortBy: newSort, page: 1 });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    updateFilters({ itemsPerPage: newItemsPerPage, page: 1 });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    updateFilters({ page: newPage });
+  };
+
+  const onClearFilters = () => {
+    const defaultFilters = {
       type: "all",
       author: "",
       title: "",
+      language: "",
       isbn: "",
       productGroup: "",
       publisher: "",
       printYear: "",
       subject: "",
-      language: "",
-      condition: 4,
-      days: 14,
-    });
+      condition: 6,
+      days: 5,
+      sortBy: "author",
+      page: 1,
+      itemsPerPage: 10,
+    };
+
+    updateFilters(defaultFilters);
   };
 
-  const filterBooks = (books: Book[]) => {
-    return books.filter((book) => {
-      // Type filter
-      if (filters?.type === "new" && book?.tila) return false;
-      if (filters?.type === "used" && !book?.tila) return false;
+  // Generate page numbers to display
+  const generatePageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
 
-      // Text filters (case-insensitive)
-      if (
-        filters.author &&
-        !book?.tekija?.toLowerCase().includes(filters.author.toLowerCase())
-      )
-        return false;
-      if (
-        filters.title &&
-        !book?.nimi?.toLowerCase().includes(filters.title.toLowerCase())
-      )
-        return false;
-      if (filters?.isbn && !book?.isbn?.includes(filters.isbn)) return false;
-      if (
-        filters?.productGroup &&
-        !book?.paatuoteryhma
-          .toLowerCase()
-          .includes(filters?.productGroup?.toLowerCase())
-      )
-        return false;
-      if (
-        filters?.publisher &&
-        !book?.kustantaja
-          ?.toLowerCase()
-          ?.includes(filters?.publisher?.toLowerCase())
-      )
-        return false;
-      if (filters?.printYear && book?.painovuosi !== filters.printYear)
-        return false;
-      if (
-        filters?.language &&
-        !book?.kieli?.toLowerCase().includes(filters?.language.toLowerCase())
-      )
-        return false;
+    // Adjust start page if we're near the end
+    if (endPage === totalPages) {
+      startPage = Math.max(1, totalPages - maxPagesToShow + 1);
+    }
 
-      // Condition filter (K1-K5)
-      const bookCondition = parseInt(book?.kunto?.replace("K", ""));
-      if (bookCondition > filters?.condition) return false;
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
 
-      return true;
-    });
+    return pageNumbers;
   };
-
-  const filteredBooks = filterBooks(books);
-  const TOTAL_RESULTS = filteredBooks.length;
-  const TOTAL_PAGES = Math.ceil(TOTAL_RESULTS / itemsPerPage);
-
-  // Get current page books
-  const currentBooks = filteredBooks.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  console.log(currentBooks);
 
   return (
     <>
-      <MaxWidthWrapper className="my-4 mt-[160px] pt-16 ">
+      <MaxWidthWrapper className="my-4 mt-[160px] pt-16">
         <h2 className="text-4xl font-bold playfair-display">Haku</h2>
       </MaxWidthWrapper>
 
@@ -156,9 +152,9 @@ export default function ClientPage({ books }: ClientPageProps) {
         <div className="w-full min-h-screen flex h-fit items-start justify-start">
           <FilterSidebar
             filters={filters}
-            //@ts-expect-error this is an error
             onFilterChange={handleFilterChange}
-            onClearFilters={handleClearFilters}
+            updateFilters={updateFilters}
+            onClearFilters={onClearFilters}
           />
 
           <div className="w-full flex-grow min-h-[400px] h-fit">
@@ -169,23 +165,20 @@ export default function ClientPage({ books }: ClientPageProps) {
                     Hakutulokset
                   </h2>
                   <p>
-                    Haulla löytyi {TOTAL_RESULTS} tuotetta (sivu {currentPage} /{" "}
-                    {TOTAL_PAGES})
+                    Haulla löytyi {totalResults} tuotetta (sivu {currentPage} /{" "}
+                    {totalPages})
                   </p>
                 </div>
                 <FilterMobile
                   filters={filters}
-                  //@ts-expect-error this is an error
                   onFilterChange={handleFilterChange}
-                  onClearFilters={handleClearFilters}
+                  updateFilters={updateFilters}
+                  onClearFilters={onClearFilters}
                 />
               </div>
 
               <div className="flex flex-col md:flex-row items-start justify-start gap-y-2 md:items-center md:justify-between px-4 md:px-8">
-                <Select
-                  value={sortBy}
-                  onValueChange={(value) => setSortBy(value)}
-                >
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[380px]">
                     <SelectValue placeholder="Tekijän mukaan" />
                   </SelectTrigger>
@@ -200,13 +193,12 @@ export default function ClientPage({ books }: ClientPageProps) {
                   <span>Tuloksia sivulla</span>
                   <Select
                     value={itemsPerPage.toString()}
-                    onValueChange={(value) => {
-                      setItemsPerPage(Number(value));
-                      setCurrentPage(1);
-                    }}
+                    onValueChange={(value) =>
+                      handleItemsPerPageChange(parseInt(value))
+                    }
                   >
                     <SelectTrigger className="w-[80px]">
-                      <SelectValue placeholder={ITEMS_PER_PAGE.toString()} />
+                      <SelectValue placeholder={itemsPerPage.toString()} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="10">10</SelectItem>
@@ -219,10 +211,60 @@ export default function ClientPage({ books }: ClientPageProps) {
               </div>
 
               <div className="w-full h-fit flex flex-col gap-y-4 px-4 md:px-8">
-                {currentBooks.map((item) => (
-                  <SearchBookCard key={item._id.$oid} book={item} />
-                ))}
+                {books.length === 0 ? (
+                  <div className="w-full py-16 flex flex-col items-center justify-center text-gray-500">
+                    <BookIcon size={48} className="mb-4" />
+                    <p className="text-lg">Ei hakutuloksia</p>
+                  </div>
+                ) : (
+                  <div>
+                    {books.map((item) => (
+                      <SearchBookCard key={item._id} book={item} />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {totalPages > 1 && (
+                <div className="flex justify-center my-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(currentPage - 1);
+                          }}
+                        />
+                      </PaginationItem>
+                      {generatePageNumbers().map((pageNumber) => (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pageNumber);
+                            }}
+                            isActive={pageNumber === currentPage}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(currentPage + 1);
+                          }}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </div>
           </div>
         </div>

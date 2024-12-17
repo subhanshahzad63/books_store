@@ -30,18 +30,7 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <svg
-        className="w-4 h-4 text-[#FFC767]"
-        fill="currentColor"
-        viewBox="0 0 20 20"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fillRule="evenodd"
-          d="M5.23 7.21a.75.75 0 011.06.02L10 10.67l3.71-3.44a.75.75 0 111.04 1.08l-4.25 3.95a.75.75 0 01-1.04 0L5.21 8.29a.75.75 0 01.02-1.08z"
-          clipRule="evenodd"
-        />
-      </svg>
+      <img src="/Polygon.png" alt="arrow" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));

@@ -47,9 +47,6 @@ const BookCard: FC<BookCardProps> = ({
     setTimeout(() => setIsAdded(false), 2000);
   };
 
-  console.log("this is the id");
-  console.log(id);
-
   return (
     <div className="w-full h-full overflow-hidden shadow rounded-2xl hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between bg-white">
       <div className="w-full flex flex-col gap-y-2">

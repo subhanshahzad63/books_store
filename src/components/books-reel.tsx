@@ -1,24 +1,15 @@
-import type { FC } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Card from "./book-card";
 
-interface ProductReelProps {
+const ProductReel = ({
+  books,
+  title,
+  desc = "Ehdotukset perustuvat esitetyn tuotteen tekijään, tuoteryhmään tai aiheisiin.",
+}: {
+  books: any[];
   title: string;
   desc?: string;
-  books: {
-    _id: string;
-    nimi: string; // Book title
-    tekija: string; // Author name
-    hinta: number; // Price
-    pvm: { $date: string }; // Date
-    kuvat: {
-      file_domain: string;
-      file_path: string;
-      file_md: string;
-    }[]; // Image array
-  }[];
-}
-
-const ProductReel: FC<ProductReelProps> = ({ title, desc, books }) => {
+}) => {
   return (
     <>
       <div className="w-full my-4 h-[50px] flex items-center justify-between gap-x-4">
@@ -39,20 +30,20 @@ const ProductReel: FC<ProductReelProps> = ({ title, desc, books }) => {
       </div>
 
       <div className="w-full my-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 min-h-[600px] h-fit gap-4">
-        {books.map((item) => {
-          const imageUrl = `${item.kuvat[0]?.file_domain}/${item.kuvat[0]?.file_path}/${item.kuvat[0]?.file_md}`;
-          return (
-            <Card
-              id={item._id}
-              key={item._id}
-              image={imageUrl}
-              price={item.hinta.toString()}
-              subTitle={item.tekija}
-              title={item.nimi}
-              date={new Date(item.pvm.$date).toLocaleDateString()}
-            />
-          );
-        })}
+        {books.length > 0 &&
+          books.map((item) => {
+            return (
+              <Card
+                id={item._id}
+                key={item._id}
+                image={`${item.kuvat[0]?.file_domain}/${item.kuvat[0]?.file_path}/${item.kuvat[0]?.file_md}`}
+                price={item.hinta.toString()}
+                subTitle={item.tekija}
+                title={item.nimi}
+                date={new Date(item.pvm.$date).toLocaleDateString()}
+              />
+            );
+          })}
       </div>
     </>
   );

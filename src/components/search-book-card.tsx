@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { FC } from "react";
+import { cn } from "@/lib/utils";
+import { useCartStore } from "@/store/useCartStore";
+import { useRouter } from "next/navigation";
+import { useState, type FC } from "react";
 
 const SearchBookCard: FC<{ book: any }> = ({ book }) => {
   const imageUrl = `${book.kuvat[0]?.file_domain}/${book.kuvat[0]?.file_path}/${book.kuvat[0]?.file_md}`;
+  const router = useRouter();
 
   const getConditionText = (kunto: string) => {
     const conditions: Record<string, string> = {
@@ -13,6 +17,24 @@ const SearchBookCard: FC<{ book: any }> = ({ book }) => {
       K1: "Heikko",
     };
     return conditions[kunto] || kunto;
+  };
+
+  const [isAdded, setIsAdded] = useState(false);
+  const { addItem } = useCartStore();
+
+  const handleAddToCart = () => {
+    addItem({
+      id: book._id,
+      image: book.kuvatieto,
+      title: book.nimi,
+      price: book.hinta.toString(),
+      subTitle: book.tekija,
+      quantity: 1,
+      condition: book.kunto || "",
+      binding: book.sidonta || "",
+    });
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
   };
 
   return (
@@ -36,7 +58,10 @@ const SearchBookCard: FC<{ book: any }> = ({ book }) => {
           <p className="text-[#757575]">
             Käytetty - {getConditionText(book.kunto)}
           </p>
-          <button className="px-10 h-[50px] w-full lg:w-fit bg-[#F0F0F0]">
+          <button
+            className="px-10 h-[50px] w-full lg:w-fit bg-[#F0F0F0]"
+            onClick={() => router.push(`/books/${book._id}`)}
+          >
             Näytä tuotetiedot »
           </button>
         </div>
@@ -59,7 +84,16 @@ const SearchBookCard: FC<{ book: any }> = ({ book }) => {
             Toimitus Suomeen 6,00 €
           </p>
 
-          <button className="w-full h-[50px] font-bold bg-primary text-white">
+          <button
+            className={cn(
+              "w-full h-14  font-bold transition-all duration-300",
+              isAdded
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-[#FFC767] hover:bg-[#da9c33]"
+            )}
+            disabled={isAdded}
+            onClick={handleAddToCart}
+          >
             Lisää ostoskoriin »
           </button>
         </div>

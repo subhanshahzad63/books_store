@@ -1,18 +1,63 @@
-import { getBooksAction } from "@/lib/actions/product.action";
-import ClientPage from "./client-page";
+import { Suspense } from "react";
+import { fetchBooks } from "@/lib/api-calls/fetch-books";
+import SearchPageClient from "./client-page";
+import SearchPageLoading from "./loading";
 
-const SearchPage = async () => {
-  const [books] = await Promise.all([getBooksAction()]);
+export const dynamic = "force-dynamic"; // Ensures dynamic rendering
 
-  if (!books) {
-    return (
-      <div className="w-full h-screen">
-        <h2 className="text-3xl font-bold">there is no item to display</h2>
-      </div>
-    );
-  }
+interface SearchParams {
+  type?: string;
+  author?: string;
+  title?: string;
+  language?: string;
+  isbn?: string;
+  productGroup?: string;
+  publisher?: string;
+  printYear?: string;
+  subject?: string;
+  condition?: string;
+  days?: string;
+  sortBy?: string;
+  page?: string;
+  itemsPerPage?: string;
+}
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const awaitedSearchParams = await searchParams;
 
-  return <ClientPage books={books} />;
-};
+  const filters = {
+    type: awaitedSearchParams.type || "all",
+    author: awaitedSearchParams.author || "",
+    title: awaitedSearchParams.title || "",
+    language: awaitedSearchParams.language || "",
+    isbn: awaitedSearchParams.isbn || "",
+    productGroup: awaitedSearchParams.productGroup || "",
+    publisher: awaitedSearchParams.publisher || "",
+    printYear: awaitedSearchParams.printYear || "",
+    subject: awaitedSearchParams.subject || "",
+    condition: parseInt(awaitedSearchParams.condition || "6"),
+    days: parseInt(awaitedSearchParams.days || "5"),
+    sortBy: awaitedSearchParams.sortBy || "author",
+    page: parseInt(awaitedSearchParams.page || "1"),
+    itemsPerPage: parseInt(awaitedSearchParams.itemsPerPage || "10"),
+  };
 
-export default SearchPage;
+  const initialData = await fetchBooks(filters);
+
+  return (
+    <Suspense fallback={<SearchPageLoading />}>
+      <SearchPageClient
+        initialBooks={initialData.books}
+        initialTotalResults={initialData.totalResults}
+        initialTotalPages={initialData.totalPages}
+        initialCurrentPage={filters.page}
+        initialItemsPerPage={filters.itemsPerPage}
+        initialSortBy={filters.sortBy}
+        initialFilters={filters}
+      />
+    </Suspense>
+  );
+}

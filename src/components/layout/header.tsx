@@ -5,41 +5,27 @@ import { ShoppingCard } from "../shopping-cart";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "../ui/button";
 import MobileNav from "./mobile-nav";
+import getVendor from "@/lib/getVendor";
 
-const Header: FC = ({}) => {
-  const LINKS = [
-    {
-      name: "ETUSIVU",
-      href: "/",
-    },
+const Header: FC = async ({}) => {
+  const vendor = await getVendor();
 
-    {
-      name: "AIHEALUEET",
-      href: "/",
-    },
-    {
-      name: "OSTAMME",
-      href: "/",
-    },
-    {
-      name: "MESSUKALENTERI",
-      href: "/",
-    },
-    {
-      name: "MYYNTIPISTEET",
-      href: "/",
-    },
-    {
-      name: "TOIMITUSEHDOT",
-      href: "/",
-    },
-  ];
   return (
     <>
-      <div className="w-full h-[160px] fixed  top-0 bg-[#FFC767] z-[10]">
+      <div
+        className={`w-full h-[160px] fixed  top-0 z-[10]`}
+        style={{ backgroundColor: vendor?.colors[0].hex }}
+      >
         <MaxWidthWrapper className="">
           <div className="w-full h-[100px]  flex items-center justify-between ">
-            <div className="w-[200px] h-[90px] bg-white"></div>
+            <div
+              className="w-[137px] h-[90px]"
+              style={{
+                backgroundImage: `url('${vendor?.logo}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            ></div>
 
             <p className="text-xl">Ostoskori</p>
           </div>
@@ -47,10 +33,10 @@ const Header: FC = ({}) => {
         <div className="w-full min-h-[60px] h-fit bg-white shadow ">
           <MaxWidthWrapper className="h-[70px]  flex w-full items-center justify-between gap-2">
             <div className="h-full hidden xl:flex flex-grow  flex-wrap items-center justify-start gap-4">
-              {LINKS.map((item) => {
+              {vendor?.pages.map((item) => {
                 return (
                   <Link
-                    key={item.name}
+                    key={item.id}
                     href={"/"}
                     className={cn(
                       buttonVariants({ variant: "ghost" }),
@@ -64,7 +50,7 @@ const Header: FC = ({}) => {
             </div>
 
             <div>
-              <MobileNav />
+              <MobileNav pages={vendor?.pages} />
             </div>
             <ShoppingCard />
           </MaxWidthWrapper>

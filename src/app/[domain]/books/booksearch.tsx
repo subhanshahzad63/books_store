@@ -1,104 +1,97 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
 import { Search, Book as BookIcon } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import type { Book, BookSearchProps, SearchQuery } from "@/types";
 import ProductReel from "@/components/books-reel";
+import Link from "next/link";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import React from "react";
 
-const BookSearch: React.FC<BookSearchProps> = ({ books }) => {
-  const searchParams = useSearchParams();
+interface Props {
+  filteredBooks: any[];
+  vendor: any;
+  languages: any[];
+  groups: any[];
+  query: string;
+  productGroup: string;
+  language: string;
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
 
-  const initialSearchQuery = {
-    query: searchParams.get("book") || "",
-    language: searchParams.get("language") || "",
-    productGroup: searchParams.get("productGroup") || "",
+const BookSearch = ({
+  query,
+  filteredBooks,
+  groups,
+  languages,
+  vendor,
+  productGroup,
+  language,
+  total = 0,
+  totalPages = 1,
+  currentPage = 1,
+}: Props) => {
+  const createPaginationLink = (page: number) => {
+    const params = new URLSearchParams();
+    if (query) params.set("query", query);
+    if (productGroup) params.set("productGroup", productGroup);
+    if (language) params.set("language", language);
+    params.set("page", page.toString());
+    return `/books?${params.toString()}`;
   };
 
-  const [searchQuery, setSearchQuery] =
-    useState<SearchQuery>(initialSearchQuery);
-  const [displayedBooks, setDisplayedBooks] = useState<Book[]>(books || []);
+  // Generate page numbers to display
+  const generatePageNumbers = () => {
+    const pages: number[] = [];
 
-  useEffect(() => {
-    if (
-      initialSearchQuery.query ||
-      initialSearchQuery.language ||
-      initialSearchQuery.productGroup
-    ) {
-      handleSearch();
+    // Always show first page
+    pages.push(1);
+
+    // Calculate range of pages to show around current page
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages, currentPage + 1);
+
+    // Add pages around current page
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) pages.push(i);
     }
-  }, []);
 
-  const filteredBooks = useMemo(() => {
-    if (!books) return [];
+    // Always show last page if it's not already included
+    if (!pages.includes(totalPages)) pages.push(totalPages);
 
-    return books.filter((book: Book) => {
-      const searchLower = searchQuery.query.toLowerCase();
-      const matchesQuery =
-        searchQuery.query === "" ||
-        book.nimi?.toLowerCase().includes(searchLower) ||
-        book.tekija?.toLowerCase().includes(searchLower);
-
-      const matchesLanguage =
-        searchQuery.language === "" ||
-        book.kieli?.toLowerCase() === searchQuery.language.toLowerCase();
-
-      const matchesProductGroup =
-        searchQuery.productGroup === "" ||
-        book.paatuoteryhma?.toLowerCase() ===
-          searchQuery.productGroup.toLowerCase();
-
-      return matchesQuery && matchesLanguage && matchesProductGroup;
-    });
-  }, [books, searchQuery]);
-
-  const uniqueLanguages = useMemo(() => {
-    if (!books) return [];
-    return [...new Set(books.map((book) => book.kieli).filter(Boolean))];
-  }, [books]);
-
-  const uniqueProductGroups = useMemo(() => {
-    if (!books) return [];
-    return [
-      ...new Set(books.map((book) => book.paatuoteryhma).filter(Boolean)),
-    ];
-  }, [books]);
-
-  const handleSearch = (): void => {
-    setDisplayedBooks(filteredBooks);
-  };
-
-  const handleClear = (): void => {
-    setSearchQuery({
-      query: "",
-      language: "",
-      productGroup: "",
-    });
-    setDisplayedBooks(books || []);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    field: keyof SearchQuery
-  ): void => {
-    setSearchQuery((prev) => ({ ...prev, [field]: e.target.value }));
+    return pages.sort((a, b) => a - b);
   };
 
   return (
     <div className="w-full flex flex-col gap-8">
       {/* Search Section */}
-      <div className="w-full min-h-[340px] h-fit bg-[#F5F5F5] rounded-2xl flex flex-col gap-y-4 p-8 md:p-4">
+      <div
+        className="w-full min-h-[340px] h-fit rounded-2xl flex flex-col gap-y-4 p-8 md:p-4"
+        style={{ backgroundColor: vendor?.colors[0].hex }}
+      >
         <span className="text-4xl font-bold playfair-display">Hae Kirjoja</span>
 
-        <div className="w-full h-fit flex flex-col md:flex-row gap-y-4">
+        <form
+          method="GET"
+          action="/books"
+          className="w-full h-fit flex flex-col md:flex-row gap-y-4"
+        >
           <div className="w-full md:w-[80%] min-h-[200px] h-fit grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-y-2 md:col-span-2">
               <span className="font-bold">Nimike / Kirjailija</span>
               <div className="relative">
                 <input
-                  value={searchQuery.query}
-                  onChange={(e) => handleInputChange(e, "query")}
+                  name="query"
+                  defaultValue={query}
                   className="w-full h-[50px] bg-white rounded-lg border border-[#757575] px-4 pr-10"
                   placeholder="Hae nimikkeellä tai kirjailijalla..."
                 />
@@ -109,30 +102,33 @@ const BookSearch: React.FC<BookSearchProps> = ({ books }) => {
             <div className="flex flex-col gap-y-2">
               <span className="font-bold">Kieli</span>
               <select
-                value={searchQuery.language}
-                onChange={(e) => handleInputChange(e, "language")}
+                name="language"
+                defaultValue={language}
                 className="w-full h-[50px] bg-white rounded-lg border border-[#757575] px-4"
+                id="language"
               >
                 <option value="">Valitse kieli</option>
-                {uniqueLanguages.map((lang) => (
-                  <option key={lang} value={lang}>
-                    {lang}
-                  </option>
-                ))}
+                {languages
+                  .filter((language) => language)
+                  .map((language, index) => (
+                    <option key={index} value={language}>
+                      {language}
+                    </option>
+                  ))}
               </select>
             </div>
 
             <div className="flex flex-col gap-y-2">
               <span className="font-bold">Tuoteryhmä</span>
               <select
-                value={searchQuery.productGroup}
-                onChange={(e) => handleInputChange(e, "productGroup")}
+                name="productGroup"
+                defaultValue={productGroup}
                 className="w-full h-[50px] bg-white rounded-lg border border-[#757575] px-4"
               >
                 <option value="">Valitse tuoteryhmä</option>
-                {uniqueProductGroups.map((group) => (
-                  <option key={group} value={group}>
-                    {group}
+                {groups.map((group) => (
+                  <option key={group._id} value={group._id}>
+                    {group.nimi}
                   </option>
                 ))}
               </select>
@@ -141,35 +137,79 @@ const BookSearch: React.FC<BookSearchProps> = ({ books }) => {
 
           <div className="w-full md:w-[20%] h-[70px] md:h-[220px] md:pt-7 flex flex-col justify-between items-start md:items-center">
             <button
-              onClick={handleSearch}
+              type="submit"
               className="bg-[#FFC767] px-10 w-[80%] min-w-[200px] h-[50px] mt-1 font-bold hover:bg-[#FFB647] transition-colors"
             >
               Hae
             </button>
-            <button
-              onClick={handleClear}
+            <Link
+              href="/books"
               className="text-gray-600 hover:text-gray-800 transition-colors"
             >
               Tyhjennä haku
-            </button>
+            </Link>
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Results Section */}
-      <div className="w-full">
+      <div className="w-full ">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold playfair-display">
-            Hakutulokset ({displayedBooks.length})
+            Hakutulokset ({total})
           </h2>
         </div>
 
-        <ProductReel
-          books={displayedBooks as any[]}
-          title="Katsotuimmat kirjat"
-        />
+        {filteredBooks?.length > 0 ? (
+          <>
+            <ProductReel books={filteredBooks} title="Hakutulokset" />
 
-        {displayedBooks.length === 0 && (
+            {totalPages > 1 && (
+              <Pagination className="my-8">
+                <PaginationContent>
+                  {/* Previous Page */}
+                  {currentPage > 1 && (
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href={createPaginationLink(currentPage - 1)}
+                      />
+                    </PaginationItem>
+                  )}
+
+                  {/* Page Numbers */}
+                  {generatePageNumbers().map((page, index, arr) => (
+                    <React.Fragment key={page}>
+                      {/* Add ellipsis if there's a gap */}
+                      {index > 0 && page > arr[index - 1] + 1 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+
+                      <PaginationItem>
+                        <PaginationLink
+                          href={createPaginationLink(page)}
+                          isActive={page === currentPage}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </React.Fragment>
+                  ))}
+
+                  {/* Next Page */}
+                  {currentPage < totalPages && (
+                    <PaginationItem>
+                      <PaginationNext
+                        href={createPaginationLink(currentPage + 1)}
+                      />
+                    </PaginationItem>
+                  )}
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
+        ) : (
           <div className="w-full py-16 flex flex-col items-center justify-center text-gray-500">
             <BookIcon size={48} className="mb-4" />
             <p className="text-lg">Ei hakutuloksia</p>

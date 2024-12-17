@@ -1,16 +1,13 @@
+import type { Metadata } from "next";
 import "./globals.css";
+import Footer from "@/components/layout/footer";
+import Header from "@/components/layout/header";
+import { Toaster } from "@/components/ui/sonner";
 
 // these are subdomain related stuff i am not using theme so i commented them
 // import { headers } from "next/headers";
 // import { getDomainFromHeaders, isValidSubdomain } from "@/lib/domains";
 // import { redirect } from "next/navigation";
-
-import type { Metadata } from "next";
-
-import "./globals.css";
-import Footer from "@/components/layout/footer";
-import Header from "@/components/layout/header";
-import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Otsikko tänne",
@@ -22,10 +19,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // const headersList = await headers();
-
-  // const { subdomain, domain } = getDomainFromHeaders(headersList);
-
   return (
     <html lang="en">
       <body className={` antialiased min-h-screen h-fit`}>

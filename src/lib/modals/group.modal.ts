@@ -16,5 +16,5 @@ const ItemSchema: Schema = new Schema({
   __v: { type: Number, default: 0 },
 });
 
-export default mongoose.models.Item ||
-  mongoose.model<TGroupe>("Groupe", ItemSchema);
+export const Groupe =
+  mongoose.models.Groupe || mongoose.model<TGroupe>("Groupe", ItemSchema);
